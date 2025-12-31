@@ -1,3 +1,11 @@
+#!/bin/bash
+
+echo "🚀 Đang nâng cấp Profile: Tích hợp Tìm kiếm địa chỉ thông minh..."
+
+# ==============================================================================
+# CẬP NHẬT FILE PROFILE (apps/user/app/profile/[username]/page.tsx)
+# ==============================================================================
+cat << 'EOF' > /var/www/lica-project/apps/user/app/profile/[username]/page.tsx
 "use client";
 import { useState, useEffect, use } from "react";
 import axios from "axios";
@@ -258,3 +266,14 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     </div>
   );
 }
+EOF
+
+# ==============================================================================
+# BUILD LẠI FRONTEND
+# ==============================================================================
+echo "🔄 Build lại User App..."
+cd /var/www/lica-project/apps/user
+npm run build
+pm2 restart lica-user
+
+echo "✅ Hoàn tất! Vào Profile -> Sổ địa chỉ để trải nghiệm tính năng tìm kiếm thông minh."
