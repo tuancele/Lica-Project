@@ -1,3 +1,12 @@
+#!/bin/bash
+
+ADMIN_DIR="/var/www/lica-project/apps/admin"
+SIDEBAR_FILE="$ADMIN_DIR/components/Sidebar.tsx"
+
+echo ">>> ĐANG CẬP NHẬT MENU SIDEBAR..."
+
+# Ghi đè lại file Sidebar.tsx với đầy đủ menu
+cat > "$SIDEBAR_FILE" <<TSX
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -74,7 +83,7 @@ export default function Sidebar() {
               <div className="bg-white rounded-lg overflow-hidden mb-1">
                 <button
                   onClick={() => toggleGroup(item.key)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 text-gray-700 hover:bg-gray-50 font-medium rounded-md transition-colors ${openGroups.includes(item.key) ? 'bg-blue-50 text-blue-700' : ''}`}
+                  className={\`w-full flex items-center justify-between px-3 py-2.5 text-gray-700 hover:bg-gray-50 font-medium rounded-md transition-colors \${openGroups.includes(item.key) ? 'bg-blue-50 text-blue-700' : ''}\`}
                 >
                   <div className="flex items-center gap-3">
                     {item.icon}
@@ -91,9 +100,9 @@ export default function Sidebar() {
                       <Link
                         key={child.href}
                         href={child.href}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-[13px] transition-colors ${
+                        className={\`flex items-center gap-2 px-3 py-2 rounded-md text-[13px] transition-colors \${
                           isActive(child.href) ? "text-blue-600 bg-blue-50 font-semibold" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                        }`}
+                        }\`}
                       >
                         {child.icon && child.icon}
                         {child.label}
@@ -105,9 +114,9 @@ export default function Sidebar() {
             ) : (
               <Link
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors font-medium ${
+                className={\`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors font-medium \${
                   isActive(item.href) ? "bg-blue-600 text-white shadow-md" : "text-gray-700 hover:bg-gray-100"
-                }`}
+                }\`}
               >
                 {item.icon}
                 <span>{item.label}</span>
@@ -119,3 +128,15 @@ export default function Sidebar() {
     </aside>
   );
 }
+TSX
+
+# Rebuild lại để cập nhật giao diện
+echo ">>> Rebuilding Admin..."
+cd "$ADMIN_DIR"
+npm run build
+pm2 restart lica-admin 2>/dev/null
+
+echo "--------------------------------------------------------"
+echo "✅ ĐÃ CẬP NHẬT MENU THÀNH CÔNG!"
+echo "👉 Hãy F5 lại trang Admin, bạn sẽ thấy mục 'Phân loại (Category)'."
+echo "--------------------------------------------------------"

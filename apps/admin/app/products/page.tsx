@@ -1,147 +1,118 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import Link from "next/link";
-import { Product } from "@/types/product";
-import { Plus, Search, Edit, Trash2, Filter } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Loader2, ImageOff } from "lucide-react";
 
 export default function ProductList() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchProducts = async () => {
     try {
+      setLoading(true);
       const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/product`);
-      setProducts(res.data.data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+      setProducts(res.data.data?.data || []); // Laravel paginate trả về object {data: []}
+    } catch (err) { 
+      console.error(err); 
+      setProducts([]); // Fallback nếu lỗi
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchProducts(); }, []);
 
-  const tabs = [
-    { id: "all", label: "Tất Cả" },
-    { id: "active", label: "Đang Hoạt Động" },
-    { id: "soldout", label: "Hết Hàng" },
-    { id: "violation", label: "Vi Phạm" },
-  ];
+  const handleDelete = async (id: number) => {
+    if (!confirm("Xóa sản phẩm này?")) return;
+    try {
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/product/${id}`);
+      fetchProducts();
+    } catch (err) { alert("Lỗi xóa sản phẩm"); }
+  };
+
+  // Filter local đơn giản
+  const filteredProducts = products.filter(p => 
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="space-y-4">
-      {/* Header Actions */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-800">Sản Phẩm</h1>
-        <Link href="/products/create" className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded shadow-sm text-sm font-medium flex items-center gap-2">
-          <Plus size={16} /> Thêm 1 sản phẩm mới
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Danh sách sản phẩm</h1>
+        <Link href="/products/create" className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-blue-700 shadow">
+          <Plus size={18} /> Thêm sản phẩm
         </Link>
       </div>
 
-      {/* Main Card */}
-      <div className="bg-white shadow-sm rounded-md border border-gray-200">
-        
-        {/* Status Tabs */}
-        <div className="flex border-b px-4">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
-                activeTab === tab.id 
-                ? "border-yellow-500 text-yellow-600" 
-                : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Filter Bar */}
-        <div className="p-4 grid grid-cols-12 gap-4 bg-gray-50/50 border-b">
-          <div className="col-span-5 relative">
+      {/* Toolbar */}
+      <div className="mb-4 flex gap-4">
+        <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
             <input 
-              type="text" 
-              placeholder="Tìm tên sản phẩm, SKU..." 
-              className="w-full border border-gray-300 rounded pl-9 pr-3 py-2 text-sm focus:border-yellow-500 focus:outline-none"
+                type="text" 
+                placeholder="Tìm kiếm theo tên, SKU..." 
+                className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 ring-blue-500 outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-          </div>
-          <div className="col-span-3">
-            <select className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-yellow-500 outline-none bg-white">
-              <option>Danh mục: Tất cả</option>
-            </select>
-          </div>
-          <div className="col-span-2">
-             <button className="w-full border border-yellow-500 text-yellow-600 rounded px-3 py-2 text-sm font-medium hover:bg-yellow-50">
-               Tìm kiếm
-             </button>
-          </div>
         </div>
+      </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-gray-100 text-gray-600 text-xs uppercase font-semibold">
-              <tr>
-                <th className="p-4 w-12"><input type="checkbox" /></th>
-                <th className="p-4">Tên sản phẩm</th>
-                <th className="p-4">Phân loại hàng</th>
-                <th className="p-4 text-right">Giá</th>
-                <th className="p-4 text-center">Kho hàng</th>
-                <th className="p-4 text-center">Thao tác</th>
-              </tr>
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow border overflow-hidden">
+        <table className="w-full text-sm text-left">
+            <thead className="bg-gray-50 text-gray-700 uppercase font-medium">
+                <tr>
+                    <th className="px-4 py-3 w-16">Hình</th>
+                    <th className="px-4 py-3">Tên sản phẩm / SKU</th>
+                    <th className="px-4 py-3">Giá bán</th>
+                    <th className="px-4 py-3">Kho</th>
+                    <th className="px-4 py-3">Thương hiệu</th>
+                    <th className="px-4 py-3 text-right">Hành động</th>
+                </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
-              {loading ? (
-                <tr><td colSpan={6} className="p-8 text-center text-gray-500">Đang tải dữ liệu...</td></tr>
-              ) : products.length === 0 ? (
-                <tr><td colSpan={6} className="p-8 text-center text-gray-500">Không tìm thấy sản phẩm nào.</td></tr>
-              ) : (
-                products.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 transition">
-                    <td className="p-4"><input type="checkbox" /></td>
-                    <td className="p-4">
-                      <div className="flex gap-3">
-                        <div className="w-12 h-12 flex-shrink-0 border rounded bg-gray-100 overflow-hidden">
-                          {p.thumbnail ? (
-                            <img src={p.thumbnail} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">NO IMG</div>
-                          )}
-                        </div>
-                        <div>
-                          <Link href={`/products/${p.id}`} className="font-medium text-blue-600 hover:underline line-clamp-2 mb-1">
-                            {p.name}
-                          </Link>
-                          <div className="text-xs text-gray-400">SKU: {p.sku || "-"}</div>
-                        </div>
-                      </div>
-                    </td>
-                    {/* FIX ERROR HERE: Access .name property */}
-                    <td className="p-4 text-gray-500 text-xs">
-                        {p.category?.name || "Chưa phân loại"}
-                    </td>
-                    <td className="p-4 text-right">
-                       <div className="text-gray-800">{Number(p.sale_price || p.price).toLocaleString('vi-VN')} ₫</div>
-                    </td>
-                    <td className="p-4 text-center">
-                        <span className="text-gray-700">{p.stock_quantity}</span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <div className="flex flex-col gap-2 items-center">
-                        <Link href={`/products/${p.id}`} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Sửa</Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+            <tbody>
+                {loading ? (
+                    <tr><td colSpan={6} className="p-8 text-center"><Loader2 className="animate-spin inline text-blue-600"/> Đang tải...</td></tr>
+                ) : filteredProducts.length > 0 ? (
+                    filteredProducts.map((p) => (
+                        <tr key={p.id} className="border-b hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                                {p.thumbnail ? (
+                                    <img src={p.thumbnail} alt="" className="w-10 h-10 object-cover rounded border" />
+                                ) : (
+                                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-400"><ImageOff size={16}/></div>
+                                )}
+                            </td>
+                            <td className="px-4 py-3">
+                                <div className="font-medium text-gray-900">{p.name}</div>
+                                <div className="text-xs text-gray-500 font-mono">{p.sku || "_"}</div>
+                            </td>
+                            <td className="px-4 py-3 font-medium text-green-600">
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price)}
+                            </td>
+                            <td className="px-4 py-3">
+                                <span className={`px-2 py-1 rounded text-xs ${p.stock_quantity > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                    {p.stock_quantity}
+                                </span>
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">
+                                {p.brand?.name || "-"}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                                <div className="flex justify-end gap-2">
+                                    <Link href={`/products/${p.id}`} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Edit size={16}/></Link>
+                                    <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:bg-red-50 p-1 rounded"><Trash2 size={16}/></button>
+                                </div>
+                            </td>
+                        </tr>
+                    ))
+                ) : (
+                    <tr><td colSpan={6} className="p-8 text-center text-gray-500">Không tìm thấy sản phẩm nào.</td></tr>
+                )}
             </tbody>
-          </table>
-        </div>
+        </table>
       </div>
     </div>
   );

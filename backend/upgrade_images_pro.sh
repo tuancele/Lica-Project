@@ -1,3 +1,70 @@
+#!/bin/bash
+
+ADMIN_DIR="/var/www/lica-project/apps/admin"
+
+echo ">>> [1/3] Đang cài đặt thư viện kéo thả..."
+cd "$ADMIN_DIR"
+npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities --save
+
+echo ">>> [2/3] Cập nhật ProductForm với tính năng Multi-upload & Drag-Drop..."
+
+# Tạo một file Component riêng cho Item ảnh để tối ưu hiệu năng kéo thả
+mkdir -p "$ADMIN_DIR/components/product"
+cat > "$ADMIN_DIR/components/product/SortableImage.tsx" <<TSX
+"use client";
+import React from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { X, GripVertical } from 'lucide-react';
+
+interface Props {
+  id: string;
+  url: string;
+  index: number;
+  onRemove: (index: number) => void;
+}
+
+export function SortableImage({ id, url, index, onRemove }: Props) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 0,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative w-28 h-28 border rounded-xl overflow-hidden group bg-gray-50 shadow-sm border-gray-200">
+      <img src={url} className="w-full h-full object-cover" alt="product" />
+      
+      {/* Nút kéo */}
+      <div {...attributes} {...listeners} className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-grab active:cursor-grabbing">
+        <GripVertical className="text-white" size={24} />
+      </div>
+
+      {/* Badge ảnh bìa */}
+      {index === 0 && (
+        <div className="absolute top-0 left-0 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg shadow-sm">
+          ẢNH BÌA
+        </div>
+      )}
+
+      {/* Nút xóa */}
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-md"
+      >
+        <X size={12} />
+      </button>
+    </div>
+  );
+}
+TSX
+
+# Cập nhật ProductForm chính
+cat > "$ADMIN_DIR/components/ProductForm.tsx" <<TSX
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -42,11 +109,11 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const [catRes, brandRes, originRes, unitRes, skinRes] = await Promise.all([
-          axios.get(`${apiUrl}/api/v1/category`),
-          axios.get(`${apiUrl}/api/v1/product/brands`),
-          axios.get(`${apiUrl}/api/v1/product/origins`),
-          axios.get(`${apiUrl}/api/v1/product/units`),
-          axios.get(`${apiUrl}/api/v1/product/skin-types`)
+          axios.get(\`\${apiUrl}/api/v1/category\`),
+          axios.get(\`\${apiUrl}/api/v1/product/brands\`),
+          axios.get(\`\${apiUrl}/api/v1/product/origins\`),
+          axios.get(\`\${apiUrl}/api/v1/product/units\`),
+          axios.get(\`\${apiUrl}/api/v1/product/skin-types\`)
         ]);
         setCategories(catRes.data.data || []);
         setBrands(brandRes.data.data || []);
@@ -76,7 +143,7 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
       const data = new FormData();
       data.append("file", file);
       try {
-        const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/cms/upload`, data);
+        const res = await axios.post(\`\${process.env.NEXT_PUBLIC_API_URL}/api/v1/cms/upload\`, data);
         uploadedUrls.push(res.data.url);
         setFormData(prev => ({ ...prev, images: [...uploadedUrls] })); // Cập nhật realtime
       } catch (error) { console.error("Lỗi upload file:", file.name); }
@@ -115,8 +182,8 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
     };
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (isEdit && initialData) await axios.put(`${apiUrl}/api/v1/product/${initialData.id}`, cleanData);
-      else await axios.post(`${apiUrl}/api/v1/product`, cleanData);
+      if (isEdit && initialData) await axios.put(\`\${apiUrl}/api/v1/product/\${initialData.id}\`, cleanData);
+      else await axios.post(\`\${apiUrl}/api/v1/product\`, cleanData);
       router.push("/products");
     } catch (error: any) {
       alert("Lỗi: " + (error.response?.data?.message || "Lỗi server"));
@@ -185,7 +252,7 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
             <ImageIcon size={20} className="text-purple-600" /> Hình ảnh sản phẩm ({formData.images?.length || 0}/9)
           </h3>
-          <label className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+          <label className={\`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition \${isUploading ? 'opacity-50 pointer-events-none' : ''}\`}>
             {isUploading ? <Loader2 className="animate-spin" size={18}/> : <UploadCloud size={18}/>}
             <span className="text-sm font-bold">TẢI ẢNH LÊN</span>
             <input type="file" multiple accept="image/*" className="hidden" onChange={handleMultiUpload} />
@@ -229,3 +296,10 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
     </form>
   );
 }
+TSX
+
+echo ">>> [3/3] Rebuilding Frontend..."
+npm run build
+pm2 restart lica-admin
+
+echo "✅ HOÀN TẤT NÂNG CẤP TÍNH NĂNG ẢNH CHUYÊN NGHIỆP!"

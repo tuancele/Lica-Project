@@ -1,30 +1,66 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import axios from "axios";
 import ProductForm from "@/components/ProductForm";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { Product } from "@/types/product";
+import { Loader2, AlertCircle } from "lucide-react";
 
-export default function EditProduct({ params }: { params: { id: string } }) {
-  const [product, setProduct] = useState<Product | null>(null);
+export default function EditProductPage() {
+  // useParams() là cách chuẩn nhất trong Client Component để lấy ID
+  const params = useParams();
+  const id = params?.id; 
+
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    // Fetch dữ liệu sản phẩm cần sửa
-    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/product/${params.id}`)
-      .then(res => setProduct(res.data))
-      .catch(err => alert("Không tìm thấy sản phẩm"));
-  }, [params.id]);
+    if (!id) return;
 
-  if (!product) return <div>Đang tải dữ liệu...</div>;
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        // Gọi API lấy chi tiết sản phẩm
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/product/${id}`);
+        setProduct(res.data.data);
+      } catch (err) {
+        console.error("Lỗi tải sản phẩm:", err);
+        setError("Không tìm thấy sản phẩm hoặc lỗi kết nối.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center flex-col gap-4 text-gray-500">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+        <p>Đang tải dữ liệu sản phẩm...</p>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center flex-col gap-4 text-red-500">
+        <AlertCircle size={48} />
+        <h2 className="text-xl font-bold">Lỗi!</h2>
+        <p>{error || "Dữ liệu không tồn tại"}</p>
+        <button onClick={() => window.history.back()} className="text-blue-600 hover:underline">Quay lại</button>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto">
-       <div className="flex items-center gap-2 mb-6 text-gray-600 hover:text-gray-900 w-fit">
-        <ArrowLeft size={18} />
-        <Link href="/products">Quay lại danh sách</Link>
-      </div>
-      <h1 className="text-2xl font-bold mb-6">Chỉnh sửa: {product.name}</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        ✏️ Chỉnh sửa sản phẩm
+      </h1>
+      {/* Truyền dữ liệu vào Form và bật chế độ Edit */}
       <ProductForm initialData={product} isEdit={true} />
     </div>
   );

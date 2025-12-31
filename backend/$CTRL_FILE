@@ -1,0 +1,36 @@
+<?php
+namespace Modules\Product\Http\Controllers;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Modules\Product\Models\SkinType;
+use Illuminate\Support\Str;
+
+class SkinTypeController extends Controller {
+    public function index() {
+        return response()->json(['status' => 200, 'data' => SkinType::latest()->get()]);
+    }
+
+    public function store(Request $request) {
+        $request->validate(['name' => 'required|string|max:255']);
+        $data = $request->all();
+        $data['slug'] = Str::slug($request->name) . '-' . rand(100, 999);
+        $item = SkinType::create($data);
+        return response()->json(['status' => 201, 'data' => $item]);
+    }
+
+    public function update(Request $request, $id) {
+        $item = SkinType::find($id);
+        if (!$item) return response()->json(['message' => 'Not found'], 404);
+        $data = $request->all();
+        if ($request->has('name') && $request->name !== $item->name) {
+            $data['slug'] = Str::slug($request->name) . '-' . rand(100, 999);
+        }
+        $item->update($data);
+        return response()->json(['status' => 200, 'data' => $item]);
+    }
+
+    public function destroy($id) {
+        SkinType::destroy($id);
+        return response()->json(['status' => 200, 'message' => 'Deleted']);
+    }
+}

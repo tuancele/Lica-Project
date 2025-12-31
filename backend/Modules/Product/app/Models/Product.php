@@ -9,26 +9,27 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'name', 'slug', 'sku', 'brand', 'category_id', // Đổi category -> category_id
-        'price', 'sale_price', 'stock_quantity',
-        'weight', 'length', 'width', 'height',
-        'short_description', 'description', 'ingredients', 'usage_instructions', 'skin_type', 'capacity',
-        'thumbnail', 'images',
-        'is_active', 'is_featured'
-    ];
+    protected $guarded = [];
 
     protected $casts = [
         'images' => 'array',
+        'skin_type_ids' => 'array',
         'is_active' => 'boolean',
-        'is_featured' => 'boolean',
-        'price' => 'decimal:2',
-        'sale_price' => 'decimal:2',
-        'weight' => 'integer',
     ];
 
-    public function category()
-    {
+    public function category() {
         return $this->belongsTo(Category::class);
+    }
+
+    public function brand() {
+        return $this->belongsTo(Brand::class);
+    }
+
+    public function origin() {
+        return $this->belongsTo(Origin::class);
+    }
+
+    public function unit() {
+        return $this->belongsTo(Unit::class);
     }
 }

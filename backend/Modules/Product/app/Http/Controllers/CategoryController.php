@@ -9,109 +9,49 @@ use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
-    // 1. Lấy danh sách (Dạng phẳng hoặc cây)
     public function index(Request $request)
     {
-        // Nếu muốn lấy dạng cây để hiển thị Menu
-        if ($request->has('tree')) {
-            return response()->json([
-                'data' => Category::with('children.children')->whereNull('parent_id')->get()
-            ]);
-        }
+        // Lấy tất cả danh mục
+        $allCategories = Category::with('parent')->get();
+        
+        // Logic sắp xếp theo dạng cây (Recursive)
+        $sorted = [];
+        $this->buildTree($allCategories, null, 0, $sorted);
 
-        // Mặc định lấy danh sách phẳng để đổ vào Select Box (Kèm parent để biết cha con)
-        $categories = Category::orderBy('name')->get();
-        
-        // Sắp xếp lại danh sách theo phân cấp cha-con để hiển thị Select đẹp hơn
-        $sorted = $this->sortCategories($categories);
-        
-        return response()->json(['data' => $sorted]);
+        return response()->json(['status' => 200, 'data' => $sorted]);
     }
 
-    // Hàm đệ quy sắp xếp danh mục cho Select box
-    private function sortCategories($categories, $parentId = null, $prefix = '') {
-        $result = [];
-        foreach ($categories as $cat) {
-            if ($cat->parent_id == $parentId) {
-                $cat->name_display = $prefix . $cat->name; // Tên hiển thị có thụt đầu dòng
-                $result[] = $cat;
-                $result = array_merge($result, $this->sortCategories($categories, $cat->id, $prefix . '-- '));
+    // Hàm đệ quy để sắp xếp: Cha -> các con của cha đó -> Cha tiếp theo
+    private function buildTree($items, $parentId, $level, &$result) {
+        foreach ($items as $item) {
+            if ($item->parent_id == $parentId) {
+                $item->level = $level;
+                $result[] = $item;
+                $this->buildTree($items, $item->id, $level + 1, $result);
             }
         }
-        return $result;
     }
 
-    // 2. Tạo mới (API chuẩn)
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'name' => 'required|string',
-            'parent_id' => 'nullable|exists:categories,id'
-        ]);
-        
-        $data['slug'] = Str::slug($data['name']) . '-' . time();
-        $data['level'] = $data['parent_id'] ? 1 : 0; // Logic đơn giản, nếu cần chính xác hơn thì query cha
-        
-        if ($data['parent_id']) {
-            $parent = Category::find($data['parent_id']);
-            $data['level'] = $parent->level + 1;
-        }
-
-        return response()->json(Category::create($data), 201);
+    public function store(Request $request) {
+        $request->validate(['name' => 'required|string|max:255']);
+        $slug = Str::slug($request->name);
+        if (Category::where('slug', $slug)->exists()) $slug .= '-' . time();
+        $category = Category::create(['name' => $request->name, 'slug' => $slug, 'parent_id' => $request->parent_id, 'description' => $request->description, 'image' => $request->image]);
+        return response()->json(['status' => 201, 'data' => $category]);
     }
 
-    // 3. API ĐẶC BIỆT: SETUP DATA HASAKI (Chạy 1 lần)
-    public function setupHasaki()
-    {
-        // Xóa sạch cũ
-        try {
-            \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-            Category::truncate();
-            \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-        } catch (\Exception $e) {}
+    public function update(Request $request, $id) {
+        $category = Category::find($id);
+        if (!$category) return response()->json(['message' => 'Not found'], 404);
+        $data = $request->all();
+        if ($request->has('name') && $request->name !== $category->name) $data['slug'] = Str::slug($request->name) . '-' . rand(10, 99);
+        $category->update($data);
+        return response()->json(['status' => 200, 'data' => $category]);
+    }
 
-        $data = [
-            'Chăm Sóc Da Mặt' => [
-                'Làm Sạch Da' => ['Tẩy Trang', 'Sữa Rửa Mặt', 'Tẩy Tế Bào Chết', 'Toner'],
-                'Đặc Trị' => ['Serum', 'Trị Mụn', 'Mờ Thâm Nám', 'Retinol'],
-                'Dưỡng Ẩm' => ['Xịt Khoáng', 'Lotion', 'Kem Dưỡng Ẩm', 'Dầu Dưỡng'],
-                'Chống Nắng' => ['Da Dầu', 'Da Khô', 'Da Nhạy Cảm'],
-                'Mặt Nạ' => ['Mặt Nạ Giấy', 'Mặt Nạ Đất Sét', 'Mặt Nạ Ngủ'],
-            ],
-            'Trang Điểm' => [
-                'Mặt' => ['Kem Lót', 'Kem Nền', 'Phấn Phủ', 'Che Khuyết Điểm', 'Má Hồng'],
-                'Môi' => ['Son Thỏi', 'Son Kem Lì', 'Son Bóng', 'Son Dưỡng'],
-                'Mắt' => ['Kẻ Mắt', 'Kẻ Mày', 'Mascara', 'Phấn Mắt'],
-            ],
-            'Chăm Sóc Cơ Thể' => [
-                'Tắm & Dưỡng' => ['Sữa Tắm', 'Dưỡng Thể', 'Tẩy Tế Bào Chết Body'],
-                'Khử Mùi' => ['Lăn Khử Mùi', 'Xịt Khử Mùi'],
-                'Tay & Chân' => ['Kem Tay', 'Dưỡng Móng'],
-            ],
-            'Chăm Sóc Tóc' => [
-                'Làm Sạch' => ['Dầu Gội', 'Dầu Xả', 'Dầu Gội Khô'],
-                'Dưỡng Tóc' => ['Kem Ủ', 'Serum Tóc', 'Tinh Dầu'],
-            ],
-            'Thực Phẩm Chức Năng' => [
-                'Làm Đẹp' => ['Collagen', 'Trắng Da', 'Cấp Nước', 'Giảm Cân'],
-                'Sức Khỏe' => ['Vitamin C', 'Vitamin E', 'Kẽm', 'Omega 3'],
-            ]
-        ];
-
-        $count = 0;
-        foreach ($data as $rootName => $groups) {
-            $root = Category::create(['name' => $rootName, 'slug' => Str::slug($rootName), 'level' => 0]);
-            $count++;
-            foreach ($groups as $groupName => $items) {
-                $group = Category::create(['name' => $groupName, 'slug' => Str::slug($groupName) . '-' . time(), 'parent_id' => $root->id, 'level' => 1]);
-                $count++;
-                foreach ($items as $item) {
-                    Category::create(['name' => $item, 'slug' => Str::slug($item) . '-' . time(), 'parent_id' => $group->id, 'level' => 2]);
-                    $count++;
-                }
-            }
-        }
-
-        return response()->json(['message' => "Da tao thanh cong $count danh muc!"]);
+    public function destroy($id) {
+        Category::where('parent_id', $id)->update(['parent_id' => null]);
+        Category::destroy($id);
+        return response()->json(['status' => 200, 'message' => 'Deleted']);
     }
 }
