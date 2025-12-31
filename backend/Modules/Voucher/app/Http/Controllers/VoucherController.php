@@ -1,56 +1,15 @@
 <?php
-
 namespace Modules\Voucher\Http\Controllers;
-
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Voucher\Models\Voucher;
 
-class VoucherController extends Controller
-{
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        return view('voucher::index');
+class VoucherController extends Controller {
+    public function index() {
+        return response()->json(Voucher::all());
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        return view('voucher::create');
+    public function store(Request $request) {
+        $data = $request->validate(['code' => 'required|unique:vouchers', 'discount_amount' => 'required|numeric']);
+        return response()->json(Voucher::create($data), 201);
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
-    {
-        return view('voucher::show');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
-    {
-        return view('voucher::edit');
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
 }

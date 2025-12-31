@@ -1,56 +1,30 @@
 <?php
-
 namespace Modules\Product\Http\Controllers;
-
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Product\Models\Product;
+use Illuminate\Support\Str;
 
-class ProductController extends Controller
-{
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        return view('product::index');
+class ProductController extends Controller {
+    public function index() {
+        return response()->json(Product::where('is_active', true)->orderBy('id', 'desc')->get());
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        return view('product::create');
+    public function store(Request $request) {
+        $data = $request->validate([
+            'name' => 'required|string',
+            'price' => 'required|numeric',
+            'stock' => 'integer'
+        ]);
+        $data['slug'] = Str::slug($data['name']) . '-' . time();
+        $product = Product::create($data);
+        return response()->json($product, 201);
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
-    {
-        return view('product::show');
+    
+    public function seed() {
+        if(Product::count() > 0) return response()->json(['message' => 'Data already exists']);
+        Product::create(['name' => 'Kem Chống Nắng Lica', 'slug' => 'kcn-lica', 'price' => 250000, 'stock' => 100]);
+        Product::create(['name' => 'Sữa Rửa Mặt Tinh Chất', 'slug' => 'srm-tinh-chat', 'price' => 180000, 'stock' => 50]);
+        return response()->json(['message' => 'Seeded successfully']);
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
-    {
-        return view('product::edit');
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
 }
