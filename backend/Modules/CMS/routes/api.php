@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\CMS\Http\Controllers\CMSController;
+use Modules\CMS\Http\Controllers\MediaController;
 
-Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
-    Route::apiResource('cms', CMSController::class)->names('cms');
+Route::prefix('v1/cms')->group(function () {
+    Route::post('/upload', [MediaController::class, 'upload']);
 });

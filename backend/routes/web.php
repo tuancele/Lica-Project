@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ApiDocController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Khi truy cập trang chủ API, hiển thị danh sách
+Route::get('/', [ApiDocController::class, 'index']);
