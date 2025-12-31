@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/mobilesupport",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\MobileSupport\\": "app/",
+            "Modules\\MobileSupport\\Database\\Factories\\": "database/factories/",
+            "Modules\\MobileSupport\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\MobileSupport\\Tests\\": "tests/"
+        }
+    }
+}

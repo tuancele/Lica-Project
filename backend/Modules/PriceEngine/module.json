@@ -1,0 +1,11 @@
+{
+    "name": "PriceEngine",
+    "alias": "priceengine",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\PriceEngine\\Providers\\PriceEngineServiceProvider"
+    ],
+    "files": []
+}

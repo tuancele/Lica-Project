@@ -1,0 +1,19 @@
+{
+    "APIGateway": true,
+    "Affiliate": true,
+    "CMS": true,
+    "CRM": true,
+    "IAM": true,
+    "Inventory": true,
+    "Loyalty": true,
+    "MobileSupport": true,
+    "Order": true,
+    "Payment": true,
+    "PriceEngine": true,
+    "Product": true,
+    "QRManagement": true,
+    "QRVerification": true,
+    "Review": true,
+    "SkinAnalysis": true,
+    "Voucher": true
+}

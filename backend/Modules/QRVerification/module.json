@@ -1,0 +1,11 @@
+{
+    "name": "QRVerification",
+    "alias": "qrverification",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\QRVerification\\Providers\\QRVerificationServiceProvider"
+    ],
+    "files": []
+}

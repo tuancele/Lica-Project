@@ -1,0 +1,11 @@
+{
+    "name": "APIGateway",
+    "alias": "apigateway",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\APIGateway\\Providers\\APIGatewayServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,11 @@
+{
+    "name": "QRManagement",
+    "alias": "qrmanagement",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\QRManagement\\Providers\\QRManagementServiceProvider"
+    ],
+    "files": []
+}

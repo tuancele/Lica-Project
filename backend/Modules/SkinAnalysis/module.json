@@ -1,0 +1,11 @@
+{
+    "name": "SkinAnalysis",
+    "alias": "skinanalysis",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\SkinAnalysis\\Providers\\SkinAnalysisServiceProvider"
+    ],
+    "files": []
+}
