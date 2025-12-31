@@ -58,7 +58,6 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
 
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-  // --- HÀM ĐÃ ĐƯỢC KHÔI PHỤC ---
   const toggleSkinType = (id: number) => {
     const currentIds = formData.skin_type_ids || [];
     setFormData({ 
@@ -187,12 +186,10 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2"><Box size={20} className="text-green-600" /> Giá & Kho vận</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        {/* ĐÃ XÓA GIÁ GIẢM VÀ ĐỔI GRID THÀNH 3 CỘT */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div><label className="block text-sm font-bold text-gray-700 mb-1">Giá bán</label>
             <input type="number" className="w-full border border-gray-300 rounded-lg px-3 py-2" value={formData.price || 0} onChange={(e) => handleChange("price", e.target.value)} />
-          </div>
-          <div><label className="block text-sm font-bold text-gray-700 mb-1">Giá giảm</label>
-            <input type="number" className="w-full border border-gray-300 rounded-lg px-3 py-2" value={formData.sale_price || 0} onChange={(e) => handleChange("sale_price", e.target.value)} />
           </div>
           <div><label className="block text-sm font-bold text-gray-700 mb-1">Số lượng</label>
             <input type="number" className="w-full border border-gray-300 rounded-lg px-3 py-2" value={formData.stock_quantity || 0} onChange={(e) => handleChange("stock_quantity", e.target.value)} />
