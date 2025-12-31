@@ -1,3 +1,11 @@
+#!/bin/bash
+
+echo "🚀 Đang nâng cấp giao diện Quản lý đơn hàng (Shopee Style)..."
+
+# ==============================================================================
+# CẬP NHẬT TRANG ORDERS (Giao diện Tab & Quick Actions)
+# ==============================================================================
+cat << 'EOF' > /var/www/lica-project/apps/admin/app/orders/page.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -245,3 +253,14 @@ export default function OrdersPage() {
     </div>
   );
 }
+EOF
+
+# ==============================================================================
+# BUILD
+# ==============================================================================
+echo "🔄 Build Admin App..."
+cd /var/www/lica-project/apps/admin
+npm run build
+pm2 restart lica-admin
+
+echo "✅ Đã nâng cấp giao diện Orders Shopee Style!"

@@ -1,3 +1,13 @@
+#!/bin/bash
+
+echo "🚀 Đang tạo trang Chi tiết đơn hàng (Admin)..."
+
+mkdir -p /var/www/lica-project/apps/admin/app/orders/[id]
+
+# ==============================================================================
+# TẠO TRANG ADMIN ORDER DETAIL
+# ==============================================================================
+cat << 'EOF' > /var/www/lica-project/apps/admin/app/orders/[id]/page.tsx
 "use client";
 
 import { useEffect, useState, use } from "react";
@@ -191,3 +201,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     </div>
   );
 }
+EOF
+
+# ==============================================================================
+# BUILD LẠI
+# ==============================================================================
+echo "🔄 Build lại Admin App..."
+cd /var/www/lica-project/apps/admin
+npm run build
+pm2 restart lica-admin
+
+echo "✅ Đã tạo trang Chi tiết đơn hàng! Hãy thử bấm lại vào mã đơn."

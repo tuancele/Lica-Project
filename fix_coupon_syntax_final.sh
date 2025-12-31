@@ -1,9 +1,17 @@
+#!/bin/bash
+
+echo "🛠️ Đang sửa lỗi cú pháp trang Checkout (Fix Unterminated template)..."
+
+# ==============================================================================
+# GHI ĐÈ FILE SHIPPING PAGE (Code sạch, không escape thừa)
+# ==============================================================================
+cat << 'EOF' > /var/www/lica-project/apps/user/app/order/shipping/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { MapPin, Phone, User, Truck, Banknote, CreditCard, Loader2, Ticket, Check } from "lucide-react";
+import { MapPin, Phone, User, Truck, Banknote, CreditCard, Loader2, Ticket } from "lucide-react";
 import SmartLocationInput from "@/components/common/SmartLocationInput";
 
 export default function ShippingPage() {
@@ -25,9 +33,6 @@ export default function ShippingPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<{code: string, discount: number} | null>(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
   const [couponMsg, setCouponMsg] = useState("");
-  
-  // List voucher gợi ý
-  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
 
   const cartItems = [{ product_id: 1, quantity: 1, name: "Sản phẩm Demo", price: 500000 }];
   const subTotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -37,15 +42,8 @@ export default function ShippingPage() {
     const initData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        
-        // Load Coupons gợi ý
-        try {
-            const couponRes = await axios.get(`${apiUrl}/api/v1/marketing/coupons/available`);
-            setAvailableCoupons(couponRes.data.data);
-        } catch (e) {}
-
         if (token) {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
             const [meRes, addrRes] = await Promise.all([
                 axios.get(`${apiUrl}/api/v1/profile/me`, { headers: { Authorization: `Bearer ${token}` } }),
                 axios.get(`${apiUrl}/api/v1/profile/addresses`, { headers: { Authorization: `Bearer ${token}` } })
@@ -80,24 +78,22 @@ export default function ShippingPage() {
     initData();
   }, []);
 
-  const checkAndApply = async (code: string) => {
+  const handleApplyCoupon = async () => {
+    if(!couponCode.trim()) return;
     setCheckingCoupon(true);
     setCouponMsg("");
-    setCouponCode(code); // Update input UI
     try {
         const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/order/check-coupon`, {
-            code: code,
+            code: couponCode,
             items: cartItems.map(i => ({ product_id: i.product_id, quantity: i.quantity }))
         });
-        setAppliedCoupon({ code: code, discount: res.data.data.discount });
+        setAppliedCoupon({ code: couponCode, discount: res.data.data.discount });
         setCouponMsg("Áp dụng mã thành công!");
     } catch (err: any) {
         setAppliedCoupon(null);
         setCouponMsg(err.response?.data?.message || "Mã không hợp lệ");
     } finally { setCheckingCoupon(false); }
-  }
-
-  const handleApplyCoupon = () => checkAndApply(couponCode);
+  };
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
@@ -156,11 +152,11 @@ export default function ShippingPage() {
                 <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-100">
                     <h3 className="text-sm font-bold uppercase mb-3 flex items-center gap-2 text-gray-800"><Truck size={16}/> Địa chỉ nhận hàng</h3>
                     <div className="mb-3">
-                        <label className="text-xs font-medium text-gray-500 mb-1 block">Khu vực *</label>
+                        <label className="text-xs font-medium text-gray-500 mb-1 block">Khu vực (Phường/Xã, Quận/Huyện) *</label>
                         <SmartLocationInput onSelect={(d) => { setAddressData(p=>({...p, province_code: d.province_code, district_code: d.district_code, ward_code: d.ward_code})); setFullLocationLabel(d.label); setLocationNames({province: d.province_name, district: d.district_name, ward: d.ward_name}); }} initialLabel={fullLocationLabel} />
                     </div>
                     <div>
-                        <label className="text-xs font-medium text-gray-500 mb-1 block">Chi tiết *</label>
+                        <label className="text-xs font-medium text-gray-500 mb-1 block">Chi tiết (Số nhà, đường) *</label>
                         <input className="w-full border rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="VD: Số 10, Ngõ 5..." value={addressData.street} onChange={e => setAddressData({...addressData, street: e.target.value})} required />
                     </div>
                 </div>
@@ -196,10 +192,10 @@ export default function ShippingPage() {
                         {cartItems.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span>{i.name} x{i.quantity}</span><span className="font-medium">{new Intl.NumberFormat('vi-VN').format(i.price * i.quantity)}đ</span></div>)}
                     </div>
                     
-                    {/* COUPON SECTION */}
+                    {/* COUPON INPUT */}
                     <div className="border-t border-dashed border-gray-300 pt-4 mt-4">
                         <label className="text-xs font-bold text-gray-500 uppercase mb-2 block flex items-center gap-1"><Ticket size={14}/> Mã giảm giá</label>
-                        <div className="flex gap-2 mb-3">
+                        <div className="flex gap-2">
                             <input type="text" placeholder="Nhập mã" className="flex-1 border rounded p-2 text-sm uppercase font-bold text-gray-700 outline-none focus:border-blue-500" 
                                 value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} disabled={!!appliedCoupon} />
                             {appliedCoupon ? (
@@ -208,29 +204,7 @@ export default function ShippingPage() {
                                 <button type="button" onClick={handleApplyCoupon} disabled={checkingCoupon} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold hover:bg-blue-700 disabled:opacity-70 transition">Áp dụng</button>
                             )}
                         </div>
-                        {couponMsg && <div className={`text-xs font-medium mb-3 ${appliedCoupon ? 'text-green-600' : 'text-red-600'}`}>{couponMsg}</div>}
-
-                        {/* LIST AVAILABLE COUPONS */}
-                        {!appliedCoupon && availableCoupons.length > 0 && (
-                            <div className="space-y-2">
-                                <p className="text-xs text-gray-400">Voucher dành cho bạn:</p>
-                                {availableCoupons.filter(c => subTotal >= c.min_order_value).length > 0 ? (
-                                    availableCoupons.filter(c => subTotal >= c.min_order_value).map(c => (
-                                        <div key={c.id} onClick={() => checkAndApply(c.code)} 
-                                            className="flex justify-between items-center p-2.5 bg-white border border-blue-200 border-dashed rounded-lg cursor-pointer hover:bg-blue-50 transition group relative overflow-hidden">
-                                            <div className="w-1.5 h-full bg-blue-500 absolute left-0 top-0"></div>
-                                            <div className="pl-3">
-                                                <div className="text-sm font-bold text-blue-700">{c.code}</div>
-                                                <div className="text-xs text-gray-500">Giảm {c.type === 'fixed' ? new Intl.NumberFormat('vi-VN').format(c.value) + 'đ' : c.value + '%'}</div>
-                                            </div>
-                                            <button className="text-xs bg-blue-600 text-white px-2 py-1 rounded font-bold group-hover:bg-blue-700">Dùng</button>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-xs text-gray-400 italic">Chưa có voucher phù hợp cho đơn hàng này.</div>
-                                )}
-                            </div>
-                        )}
+                        {couponMsg && <div className={`text-xs mt-2 font-medium ${appliedCoupon ? 'text-green-600' : 'text-red-600'}`}>{couponMsg}</div>}
                     </div>
 
                     <div className="border-t border-gray-300 pt-4 mt-4 space-y-2">
@@ -254,3 +228,14 @@ export default function ShippingPage() {
     </div>
   );
 }
+EOF
+
+# ==============================================================================
+# BUILD LẠI
+# ==============================================================================
+echo "🔄 Build lại Frontend User..."
+cd /var/www/lica-project/apps/user
+npm run build
+pm2 restart lica-user
+
+echo "✅ Hoàn tất! Trang đặt hàng đã hoạt động trở lại."

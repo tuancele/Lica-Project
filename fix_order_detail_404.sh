@@ -1,3 +1,13 @@
+#!/bin/bash
+
+echo "🚑 Đang sửa lỗi Chi tiết đơn hàng (404 Not Found)..."
+
+# ==============================================================================
+# CẬP NHẬT ORDER CONTROLLER (Hỗ trợ tìm theo Code)
+# ==============================================================================
+echo "⚙️ Cập nhật Logic tìm kiếm Order..."
+
+cat << 'EOF' > /var/www/lica-project/backend/Modules/Order/app/Http/Controllers/OrderController.php
 <?php
 
 namespace Modules\Order\Http\Controllers;
@@ -169,3 +179,14 @@ class OrderController extends Controller
         return response()->json(['status' => 200, 'message' => 'Updated']);
     }
 }
+EOF
+
+# ==============================================================================
+# CLEAR CACHE
+# ==============================================================================
+echo "🧹 Clear Cache..."
+cd /var/www/lica-project/backend
+php artisan route:clear
+php artisan config:clear
+
+echo "✅ Đã sửa xong! Hãy thử tải lại trang chi tiết đơn hàng."
