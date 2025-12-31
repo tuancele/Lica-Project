@@ -1,3 +1,11 @@
+#!/bin/bash
+
+ADMIN_DIR="/var/www/lica-project/apps/admin"
+FORM_FILE="$ADMIN_DIR/components/ProductForm.tsx"
+
+echo ">>> ĐANG VÁ LỖI BUILD (KHÔI PHỤC HÀM TOGGLE SKIN TYPE)..."
+
+cat > "$FORM_FILE" <<TSX
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -40,11 +48,11 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const [catRes, brandRes, originRes, unitRes, skinRes] = await Promise.all([
-          axios.get(`${apiUrl}/api/v1/category`),
-          axios.get(`${apiUrl}/api/v1/product/brands`),
-          axios.get(`${apiUrl}/api/v1/product/origins`),
-          axios.get(`${apiUrl}/api/v1/product/units`),
-          axios.get(`${apiUrl}/api/v1/product/skin-types`)
+          axios.get(\`\${apiUrl}/api/v1/category\`),
+          axios.get(\`\${apiUrl}/api/v1/product/brands\`),
+          axios.get(\`\${apiUrl}/api/v1/product/origins\`),
+          axios.get(\`\${apiUrl}/api/v1/product/units\`),
+          axios.get(\`\${apiUrl}/api/v1/product/skin-types\`)
         ]);
         setCategories(catRes.data.data || []);
         setBrands(brandRes.data.data || []);
@@ -81,7 +89,7 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
       const data = new FormData();
       data.append("file", file);
       try {
-        const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/cms/upload`, data);
+        const res = await axios.post(\`\${process.env.NEXT_PUBLIC_API_URL}/api/v1/cms/upload\`, data);
         uploadedUrls.push(res.data.url);
         setFormData(prev => ({ ...prev, images: [...uploadedUrls] }));
       } catch (error) { console.error("Lỗi upload", file.name); }
@@ -110,8 +118,8 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isEdit && initialData) await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/product/${initialData.id}`, formData);
-      else await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/product`, formData);
+      if (isEdit && initialData) await axios.put(\`\${process.env.NEXT_PUBLIC_API_URL}/api/v1/product/\${initialData.id}\`, formData);
+      else await axios.post(\`\${process.env.NEXT_PUBLIC_API_URL}/api/v1/product\`, formData);
       router.push("/products");
     } catch (error: any) { alert("Lỗi lưu sản phẩm"); } finally { setLoading(false); }
   };
@@ -252,3 +260,11 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
     </form>
   );
 }
+TSX
+
+# Rebuild Frontend
+cd "$ADMIN_DIR"
+npm run build
+pm2 restart lica-admin
+
+echo "✅ ĐÃ VÁ LỖI BUILD THÀNH CÔNG!"

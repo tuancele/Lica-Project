@@ -1,3 +1,12 @@
+#!/bin/bash
+
+ADMIN_DIR="/var/www/lica-project/apps/admin"
+FORM_FILE="$ADMIN_DIR/components/ProductForm.tsx"
+
+echo ">>> ĐANG LOẠI BỎ NÚT TẢI ẢNH THỪA VÀ TỐI ƯU GIAO DIỆN..."
+
+# Cập nhật ProductForm.tsx (Bỏ nút header và dọn dẹp UI)
+cat > "$FORM_FILE" <<TSX
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -40,11 +49,11 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const [catRes, brandRes, originRes, unitRes, skinRes] = await Promise.all([
-          axios.get(`${apiUrl}/api/v1/category`),
-          axios.get(`${apiUrl}/api/v1/product/brands`),
-          axios.get(`${apiUrl}/api/v1/product/origins`),
-          axios.get(`${apiUrl}/api/v1/product/units`),
-          axios.get(`${apiUrl}/api/v1/product/skin-types`)
+          axios.get(\`\${apiUrl}/api/v1/category\`),
+          axios.get(\`\${apiUrl}/api/v1/product/brands\`),
+          axios.get(\`\${apiUrl}/api/v1/product/origins\`),
+          axios.get(\`\${apiUrl}/api/v1/product/units\`),
+          axios.get(\`\${apiUrl}/api/v1/product/skin-types\`)
         ]);
         setCategories(catRes.data.data || []);
         setBrands(brandRes.data.data || []);
@@ -57,15 +66,6 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
   }, []);
 
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
-
-  // --- HÀM ĐÃ ĐƯỢC KHÔI PHỤC ---
-  const toggleSkinType = (id: number) => {
-    const currentIds = formData.skin_type_ids || [];
-    setFormData({ 
-      ...formData, 
-      skin_type_ids: currentIds.includes(id) ? currentIds.filter(x => x !== id) : [...currentIds, id] 
-    });
-  };
 
   const handleMultiUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -81,7 +81,7 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
       const data = new FormData();
       data.append("file", file);
       try {
-        const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/cms/upload`, data);
+        const res = await axios.post(\`\${process.env.NEXT_PUBLIC_API_URL}/api/v1/cms/upload\`, data);
         uploadedUrls.push(res.data.url);
         setFormData(prev => ({ ...prev, images: [...uploadedUrls] }));
       } catch (error) { console.error("Lỗi upload", file.name); }
@@ -110,14 +110,15 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isEdit && initialData) await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/product/${initialData.id}`, formData);
-      else await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/product`, formData);
+      if (isEdit && initialData) await axios.put(\`\${process.env.NEXT_PUBLIC_API_URL}/api/v1/product/\${initialData.id}\`, formData);
+      else await axios.post(\`\${process.env.NEXT_PUBLIC_API_URL}/api/v1/product\`, formData);
       router.push("/products");
     } catch (error: any) { alert("Lỗi lưu sản phẩm"); } finally { setLoading(false); }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pb-24 max-w-5xl mx-auto font-sans">
+    <form onSubmit={handleSubmit} className="space-y-6 pb-24 max-w-5xl mx-auto">
+      {/* 1. Cơ bản */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2"><Tag size={20} className="text-blue-600" /> Thông tin cơ bản</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -138,16 +139,17 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
         </div>
       </div>
 
+      {/* 2. Đặc tính */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2"><Droplets size={20} className="text-pink-500" /> Đặc tính mỹ phẩm</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div><label className="block text-sm font-bold text-gray-700 mb-1">Xuất xứ</label>
-            <select className="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white" value={formData.origin_id || ""} onChange={(e) => handleChange("origin_id", e.target.value)}>
+            <select className="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white focus:ring-2 focus:ring-pink-500 outline-none" value={formData.origin_id || ""} onChange={(e) => handleChange("origin_id", e.target.value)}>
               <option value="">-- Chọn quốc gia --</option>{origins.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
           </div>
           <div><label className="block text-sm font-bold text-gray-700 mb-1">Dung tích / Đơn vị</label>
-            <select className="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white" value={formData.unit_id || ""} onChange={(e) => handleChange("unit_id", e.target.value)}>
+            <select className="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white focus:ring-2 focus:ring-pink-500 outline-none" value={formData.unit_id || ""} onChange={(e) => handleChange("unit_id", e.target.value)}>
               <option value="">-- Chọn đơn vị --</option>{units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           </div>
@@ -165,6 +167,7 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
         </div>
       </div>
 
+      {/* 3. Mô tả */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2"><FileText size={20} className="text-orange-500" /> Nội dung</h3>
         <div className="space-y-4">
@@ -185,6 +188,7 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
         </div>
       </div>
 
+      {/* 4. Giá & Kho */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2"><Box size={20} className="text-green-600" /> Giá & Kho vận</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -217,14 +221,19 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
         </div>
       </div>
 
+      {/* 5. Ảnh - KHÔNG NÚT HEADER, CHỈ Ô DROPZONE */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><ImageIcon size={20} className="text-purple-600" /> Hình ảnh ({formData.images?.length || 0}/9)</h3>
+        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <ImageIcon size={20} className="text-purple-600" /> Hình ảnh sản phẩm ({formData.images?.length || 0}/9)
+        </h3>
+        
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={formData.images || []} strategy={rectSortingStrategy}>
             <div className="flex flex-wrap gap-4 min-h-[120px] p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
               {formData.images?.map((url, index) => (
                 <SortableImage key={url} id={url} url={url} index={index} onRemove={removeImage} />
               ))}
+              
               {(formData.images?.length || 0) < 9 && !isUploading && (
                 <label className="w-28 h-28 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition bg-white hover:bg-blue-50">
                   <Plus size={24} />
@@ -232,6 +241,7 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
                   <input type="file" multiple accept="image/*" className="hidden" onChange={handleMultiUpload} />
                 </label>
               )}
+
               {isUploading && (
                 <div className="w-28 h-28 border-2 border-dashed border-blue-200 rounded-xl flex flex-col items-center justify-center text-blue-400 bg-blue-50 animate-pulse">
                   <Loader2 className="animate-spin" size={24} />
@@ -252,3 +262,11 @@ export default function ProductForm({ initialData, isEdit = false }: Props) {
     </form>
   );
 }
+TSX
+
+# Rebuild
+cd "$ADMIN_DIR"
+npm run build
+pm2 restart lica-admin
+
+echo "✅ ĐÃ DỌN DẸP GIAO DIỆN XONG!"
