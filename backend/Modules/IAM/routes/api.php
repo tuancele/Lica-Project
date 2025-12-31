@@ -25,3 +25,12 @@ Route::prefix('v1/location')->group(function () {
     Route::get('/wards/{district_code}', [LocationController::class, 'getWards']);
     Route::get('/search', [LocationController::class, 'search']);
 });
+
+use Modules\IAM\Http\Controllers\UserController;
+
+// Admin Management Routes
+Route::prefix('v1/users')->group(function () {
+    Route::get('/', [UserController::class, 'index']);
+    Route::get('/{id}', [UserController::class, 'show']);
+    Route::delete('/{id}', [UserController::class, 'destroy']);
+});

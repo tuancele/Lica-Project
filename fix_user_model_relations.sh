@@ -1,3 +1,15 @@
+#!/bin/bash
+
+echo "🚑 Đang sửa lỗi Model User (Thiếu Relationships)..."
+
+cd /var/www/lica-project/backend
+
+# ==============================================================================
+# CẬP NHẬT USER MODEL
+# ==============================================================================
+echo "📝 Cập nhật app/Models/User.php..."
+
+cat << 'EOF' > app/Models/User.php
 <?php
 
 namespace App\Models;
@@ -58,3 +70,12 @@ class User extends Authenticatable
         return $this->hasMany(UserAddress::class, 'user_id');
     }
 }
+EOF
+
+# ==============================================================================
+# CLEAR CACHE
+# ==============================================================================
+echo "🧹 Clear Cache..."
+php artisan cache:clear
+
+echo "✅ Đã sửa xong! Hãy thử truy cập lại trang chi tiết User."
