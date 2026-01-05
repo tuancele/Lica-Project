@@ -3,105 +3,70 @@
 namespace Modules\IAM\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class VietnamLocationsSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // URL dự phòng nếu link chính github bị lỗi
-        $url = 'https://raw.githubusercontent.com/kenzouno1/DiaGioiHanhChinhVN/master/data.json';
-        
-        $this->command->info("Downloading data from: $url");
-        
-        try {
-            $jsonData = Http::withoutVerifying()->timeout(120)->get($url)->json();
-        } catch (\Exception $e) {
-            $this->command->error("Download Failed: " . $e->getMessage());
-            return;
-        }
+        // Không cần truncate ở đây nữa vì CleanLocationSeeder đã làm rồi
+        // Hoặc bảng mới tạo thì auto rỗng
 
-        if (empty($jsonData)) {
-            $this->command->error("JSON Data is empty!");
-            return;
-        }
+        echo "Đang tải dữ liệu...\n";
+        $json = file_get_contents('https://raw.githubusercontent.com/madnh/hanhchinhvn/master/dist/tree.json');
+        $data = json_decode($json, true);
 
-        $count = count($jsonData);
-        $this->command->info("Found $count provinces. Importing...");
+        if (!$data) { echo "Lỗi JSON!\n"; return; }
 
-        DB::beginTransaction();
-        try {
-            foreach ($jsonData as $prov) {
-                // Xử lý linh hoạt key Id/id/code
-                $pId = $prov['Id'] ?? $prov['id'] ?? $prov['code'] ?? null;
-                $pName = $prov['Name'] ?? $prov['name'] ?? null;
-                
-                if (!$pId) continue;
+        $provinces = [];
+        $districts = [];
+        $wards = [];
 
-                // 1. Insert Tỉnh
-                DB::table('provinces')->updateOrInsert(
-                    ['code' => $pId],
-                    [
-                        'name' => $pName,
-                        'type' => $prov['Type'] ?? 'Tỉnh/TP',
-                        'slug' => Str::slug($pName),
-                        'created_at' => now(), 
-                        'updated_at' => now()
-                    ]
-                );
+        foreach ($data as $p) {
+            $provinces[] = [
+                'code' => $p['code'],
+                'name' => $p['name'],
+                'name_en' => $p['slug'],
+                'full_name' => $p['name_with_type'],
+                'full_name_en' => $p['name_with_type'],
+                'code_name' => $p['slug'],
+                'created_at' => now(), 'updated_at' => now()
+            ];
 
-                $districts = $prov['Districts'] ?? $prov['districts'] ?? [];
-                foreach ($districts as $dist) {
-                    $dId = $dist['Id'] ?? $dist['id'] ?? $dist['code'] ?? null;
-                    $dName = $dist['Name'] ?? $dist['name'] ?? null;
-                    
-                    if (!$dId) continue;
+            foreach ($p['quan-huyen'] as $d) {
+                $districts[] = [
+                    'code' => $d['code'],
+                    'name' => $d['name'],
+                    'name_en' => $d['slug'],
+                    'full_name' => $d['name_with_type'],
+                    'full_name_en' => $d['name_with_type'],
+                    'code_name' => $d['slug'],
+                    'province_code' => $p['code'],
+                    'created_at' => now(), 'updated_at' => now()
+                ];
 
-                    // 2. Insert Huyện
-                    DB::table('districts')->updateOrInsert(
-                        ['code' => $dId],
-                        [
-                            'province_code' => $pId,
-                            'name' => $dName,
-                            'type' => $dist['Type'] ?? 'Quận/Huyện',
-                            'slug' => Str::slug($dName),
-                            'created_at' => now(), 
-                            'updated_at' => now()
-                        ]
-                    );
-
-                    $wards = $dist['Wards'] ?? $dist['wards'] ?? [];
-                    $wardsData = [];
-                    foreach ($wards as $ward) {
-                        $wId = $ward['Id'] ?? $ward['id'] ?? $ward['code'] ?? null;
-                        $wName = $ward['Name'] ?? $ward['name'] ?? null;
-
-                        if ($wId) {
-                            $wardsData[] = [
-                                'code' => $wId,
-                                'district_code' => $dId,
-                                'name' => $wName,
-                                'type' => $ward['Type'] ?? 'Xã/Phường',
-                                'slug' => Str::slug($wName),
-                                'created_at' => now(),
-                                'updated_at' => now()
-                            ];
-                        }
-                    }
-                    
-                    // 3. Insert Xã (Batch Insert)
-                    if (!empty($wardsData)) {
-                        DB::table('wards')->upsert($wardsData, ['code'], ['name', 'district_code', 'updated_at']);
-                    }
+                foreach ($d['xa-phuong'] as $w) {
+                    $wards[] = [
+                        'code' => $w['code'],
+                        'name' => $w['name'],
+                        'name_en' => $w['slug'],
+                        'full_name' => $w['name_with_type'],
+                        'full_name_en' => $w['name_with_type'],
+                        'code_name' => $w['slug'],
+                        'district_code' => $d['code'],
+                        'created_at' => now(), 'updated_at' => now()
+                    ];
                 }
             }
-            DB::commit();
-            $this->command->info("✅ Import Completed Successfully!");
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->command->error("Import Failed: " . $e->getMessage());
         }
+
+        foreach (array_chunk($provinces, 100) as $chunk) DB::table('provinces')->insert($chunk);
+        echo "Đã nạp " . count($provinces) . " Tỉnh/Thành\n";
+
+        foreach (array_chunk($districts, 100) as $chunk) DB::table('districts')->insert($chunk);
+        echo "Đã nạp " . count($districts) . " Quận/Huyện\n";
+
+        foreach (array_chunk($wards, 200) as $chunk) DB::table('wards')->insert($chunk);
+        echo "Đã nạp " . count($wards) . " Phường/Xã\n";
     }
 }

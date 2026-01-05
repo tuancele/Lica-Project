@@ -1,3 +1,15 @@
+#!/bin/bash
+
+BACKEND_ROOT="/var/www/lica-project/backend"
+LOG_FILE="$BACKEND_ROOT/storage/logs/laravel.log"
+
+echo "========================================================"
+echo "   SỬA LỖI 500 API FLASHSALE & KIỂM TRA LOG"
+echo "========================================================"
+
+# 1. Cập nhật lại Controller (Bỏ select để load full model, tránh lỗi Appends)
+echo ">>> [1/4] Cập nhật PriceEngineController (Safe Query)..."
+cat << 'EOF' > $BACKEND_ROOT/Modules/PriceEngine/app/Http/Controllers/PriceEngineController.php
 <?php
 
 namespace Modules\PriceEngine\Http\Controllers;
@@ -114,3 +126,29 @@ class PriceEngineController extends Controller
         return response()->json(['status' => 200, 'message' => 'Deleted']);
     }
 }
+EOF
+
+# 2. Sửa quyền & Xóa cache
+echo ">>> [2/4] Fix permissions & Clear cache..."
+cd $BACKEND_ROOT
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+php artisan config:clear
+php artisan route:clear
+php artisan cache:clear
+composer dump-autoload
+
+# 3. Hiển thị Log lỗi gần nhất (để bạn biết nguyên nhân nếu vẫn lỗi)
+echo ">>> [3/4] TRÍCH XUẤT ERROR LOG MỚI NHẤT:"
+echo "--------------------------------------------------------"
+if [ -f "$LOG_FILE" ]; then
+    # Tìm dòng chứa "local.ERROR" gần nhất và in ra 10 dòng sau đó
+    grep -A 10 "local.ERROR" $LOG_FILE | tail -n 20
+else
+    echo "Không tìm thấy file log tại $LOG_FILE"
+fi
+echo "--------------------------------------------------------"
+
+echo "========================================================"
+echo "   ĐÃ SỬA XONG! VUI LÒNG KIỂM TRA LẠI WEBSITE."
+echo "========================================================"

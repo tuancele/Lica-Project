@@ -1,3 +1,57 @@
+#!/bin/bash
+
+FE_DIR="/var/www/lica-project/apps/user"
+
+echo "========================================================"
+echo "   SỬA LỖI CHECKOUT FRONTEND (CLEAN BUILD)"
+echo "========================================================"
+
+# 1. Cập nhật Order Service (Đảm bảo interface và method checkout đúng)
+echo ">>> [1/4] Cập nhật Order Service..."
+cat << 'EOF' > $FE_DIR/services/order.service.ts
+import api from '@/lib/axios';
+
+export interface OrderPayload {
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  shipping_address: string;
+  province_id: string | number;
+  district_id: string | number;
+  ward_id: string | number;
+  payment_method: string;
+  items: Array<{
+    product_id: number;
+    quantity: number;
+    price: number;
+  }>;
+  coupon_code?: string;
+  note?: string;
+}
+
+export const OrderService = {
+  // Method checkout chính thức
+  checkout: async (payload: OrderPayload) => {
+    const res = await api.post('/order/checkout', payload);
+    return res.data;
+  },
+  
+  checkCoupon: async (code: string, total: number) => {
+    const res = await api.post('/order/check-coupon', { code, total });
+    return res.data;
+  },
+  
+  getOrderByHash: async (hash: string) => {
+    const res = await api.get(`/order/success/${hash}`);
+    return res.data.data || res.data;
+  }
+};
+EOF
+
+# 2. Cập nhật Checkout Page (Gọi đúng method checkout)
+echo ">>> [2/4] Cập nhật Checkout Page..."
+rm -f $FE_DIR/app/checkout/page.tsx # Xóa file cũ để đảm bảo ghi mới
+cat << 'EOF' > $FE_DIR/app/checkout/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -209,3 +263,17 @@ export default function CheckoutPage() {
     </div>
   );
 }
+EOF
+
+# 3. Xóa cache và Build lại
+echo ">>> [3/4] Xóa cache build (.next)..."
+cd $FE_DIR
+rm -rf .next
+
+echo ">>> [4/4] Bắt đầu build lại (Clean Build)..."
+npm run build
+
+echo "========================================================"
+echo "   NẾU THẤY 'Compiled successfully', HÃY RESTART PM2"
+echo "   Command: pm2 restart all"
+echo "========================================================"

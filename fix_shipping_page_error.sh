@@ -1,3 +1,14 @@
+#!/bin/bash
+
+FE_ROOT="/var/www/lica-project/apps/user"
+
+echo "========================================================"
+echo "   FIX LỖI BUILD SHIPPING PAGE (SAI TÊN PROP)"
+echo "========================================================"
+
+# Cập nhật apps/user/app/order/shipping/page.tsx
+# Thay đổi prop onSelect -> onLocationChange và bỏ initialLabel (component mới không dùng)
+cat << 'EOF' > $FE_ROOT/app/order/shipping/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -234,3 +245,14 @@ export default function ShippingPage() {
     </div>
   );
 }
+EOF
+
+# Build lại Frontend
+echo ">>> Rebuilding Frontend..."
+cd $FE_ROOT
+npm run build
+
+echo "========================================================"
+echo "   ĐÃ SỬA XONG! VUI LÒNG RESTART PM2"
+echo "   Command: pm2 restart all"
+echo "========================================================"

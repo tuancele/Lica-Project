@@ -19,14 +19,17 @@ export interface OrderPayload {
 }
 
 export const OrderService = {
+  // Method checkout chính thức
   checkout: async (payload: OrderPayload) => {
     const res = await api.post('/order/checkout', payload);
     return res.data;
   },
+  
   checkCoupon: async (code: string, total: number) => {
     const res = await api.post('/order/check-coupon', { code, total });
     return res.data;
   },
+  
   getOrderByHash: async (hash: string) => {
     const res = await api.get(`/order/success/${hash}`);
     return res.data.data || res.data;

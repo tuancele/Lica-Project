@@ -3,7 +3,7 @@
 namespace Modules\PriceEngine\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Modules\Product\Models\Product;
+use Modules\Product\Models\Product; // Namespace quan trọng
 
 class ProgramItem extends Model
 {
@@ -12,7 +12,7 @@ class ProgramItem extends Model
 
     public function product()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'product_id');
     }
 
     public function program()

@@ -1,127 +1,96 @@
-"use client";
-import { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import { MapPin, Search, X, Loader2 } from "lucide-react";
+'use client';
 
-interface LocationResult {
-  label: string;
-  province_code: string;
-  district_code: string;
-  ward_code: string;
-  province_name: string;
-  district_name: string;
-  ward_name: string;
+import { useState, useEffect } from 'react';
+import { LocationService, LocationOption } from '@/services/location.service';
+
+interface LocationData {
+  province?: LocationOption;
+  district?: LocationOption;
+  ward?: LocationOption;
+  fullAddress: string;
 }
 
 interface Props {
-  onSelect: (data: LocationResult) => void;
-  initialLabel?: string;
+  // Tên prop chuẩn dùng cho toàn bộ dự án
+  onLocationChange: (data: LocationData) => void;
 }
 
-export default function SmartLocationInput({ onSelect, initialLabel = "" }: Props) {
-  const [query, setQuery] = useState(initialLabel);
-  const [results, setResults] = useState<LocationResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
+export default function SmartLocationInput({ onLocationChange }: Props) {
+  const [provinces, setProvinces] = useState<LocationOption[]>([]);
+  const [districts, setDistricts] = useState<LocationOption[]>([]);
+  const [wards, setWards] = useState<LocationOption[]>([]);
 
-  // Debounce search
+  const [selectedProvince, setSelectedProvince] = useState<string>('');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+  const [selectedWard, setSelectedWard] = useState<string>('');
+  const [street, setStreet] = useState('');
+
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (query.length < 2 || query === initialLabel) return;
-      
-      setLoading(true);
-      try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/location/search?q=${query}`);
-        setResults(res.data.data);
-        setIsOpen(true);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }, 400); // Wait 400ms after typing
+    LocationService.getProvinces().then(setProvinces);
+  }, []);
 
-    return () => clearTimeout(timer);
-  }, [query, initialLabel]);
-
-  // Sync initial label
   useEffect(() => {
-    if (initialLabel) setQuery(initialLabel);
-  }, [initialLabel]);
-
-  // Click outside to close
-  useEffect(() => {
-    function handleClickOutside(event: any) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
+    if (selectedProvince) {
+      setDistricts([]); setWards([]); setSelectedDistrict(''); setSelectedWard('');
+      LocationService.getDistricts(selectedProvince).then(setDistricts);
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [wrapperRef]);
+  }, [selectedProvince]);
 
-  const handleSelect = (item: LocationResult) => {
-    setQuery(item.label);
-    setIsOpen(false);
-    onSelect(item);
-  };
+  useEffect(() => {
+    if (selectedDistrict) {
+      setWards([]); setSelectedWard('');
+      LocationService.getWards(selectedDistrict).then(setWards);
+    }
+  }, [selectedDistrict]);
 
-  const handleClear = () => {
-    setQuery("");
-    setResults([]);
-    onSelect({
-      label: "", province_code: "", district_code: "", ward_code: "",
-      province_name: "", district_name: "", ward_name: ""
+  useEffect(() => {
+    const province = provinces.find(p => p.code === selectedProvince);
+    const district = districts.find(d => d.code === selectedDistrict);
+    const ward = wards.find(w => w.code === selectedWard);
+
+    // Logic tạo địa chỉ hiển thị
+    const parts = [street, ward?.full_name, district?.full_name, province?.full_name].filter(Boolean);
+    
+    // Gửi dữ liệu ra ngoài
+    onLocationChange({
+      province,
+      district,
+      ward,
+      fullAddress: parts.join(', ')
     });
-  };
+  }, [selectedProvince, selectedDistrict, selectedWard, street, provinces, districts, wards]);
 
   return (
-    <div className="relative" ref={wrapperRef}>
-      <div className="relative">
-        <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
-        <input
-          type="text"
-          className="w-full border border-gray-300 rounded-lg pl-10 pr-10 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm"
-          placeholder="Nhập Phường/Xã để tìm nhanh (VD: Đại Mỗ)"
-          value={query}
-          onChange={(e) => {
-             setQuery(e.target.value);
-             if(!e.target.value) setIsOpen(false);
-          }}
-          onFocus={() => { if(results.length > 0) setIsOpen(true); }}
-        />
-        {loading ? (
-            <Loader2 className="absolute right-3 top-3 animate-spin text-blue-500" size={18} />
-        ) : query && (
-            <button onClick={handleClear} className="absolute right-3 top-3 text-gray-400 hover:text-red-500">
-                <X size={18}/>
-            </button>
-        )}
-      </div>
-
-      {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto">
-          <ul>
-            {results.map((item, idx) => (
-              <li
-                key={idx}
-                onClick={() => handleSelect(item)}
-                className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b last:border-0 text-sm text-gray-700 flex flex-col"
-              >
-                <span className="font-medium text-gray-900">{item.ward_name}</span>
-                <span className="text-xs text-gray-500">{item.district_name}, {item.province_name}</span>
-              </li>
-            ))}
-          </ul>
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <select className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none bg-white"
+            value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value)}>
+            <option value="">-- Tỉnh/Thành --</option>
+            {provinces.map((p) => <option key={p.code} value={p.code}>{p.full_name || p.name}</option>)}
+          </select>
         </div>
-      )}
-      
-      {isOpen && results.length === 0 && !loading && query.length >= 2 && (
-         <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 p-3 text-center text-sm text-gray-500">
-            Không tìm thấy địa chỉ nào.
-         </div>
-      )}
+        <div>
+          <select className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none bg-white disabled:bg-gray-100"
+            value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} disabled={!selectedProvince}>
+            <option value="">-- Quận/Huyện --</option>
+            {districts.map((d) => <option key={d.code} value={d.code}>{d.full_name || d.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <select className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none bg-white disabled:bg-gray-100"
+            value={selectedWard} onChange={(e) => setSelectedWard(e.target.value)} disabled={!selectedDistrict}>
+            <option value="">-- Phường/Xã --</option>
+            {wards.map((w) => <option key={w.code} value={w.code}>{w.full_name || w.name}</option>)}
+          </select>
+        </div>
+      </div>
+      <div>
+        <input type="text" className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none focus:border-blue-500 transition"
+          placeholder="Số nhà, tên đường..."
+          value={street} onChange={(e) => setStreet(e.target.value)}
+        />
+      </div>
     </div>
   );
 }

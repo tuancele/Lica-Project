@@ -1,3 +1,14 @@
+#!/bin/bash
+
+BACKEND_ROOT="/var/www/lica-project/backend"
+
+echo "========================================================"
+echo "   FIX LOCATION: SAFE MODE (NO ROOT REQUIRED)"
+echo "========================================================"
+
+# 1. Cập nhật LocationController (Hỗ trợ đa Database)
+echo ">>> [1/3] Cập nhật LocationController..."
+cat << 'EOF' > $BACKEND_ROOT/Modules/IAM/app/Http/Controllers/LocationController.php
 <?php
 
 namespace Modules\IAM\Http\Controllers;
@@ -89,3 +100,64 @@ class LocationController extends Controller
         }
     }
 }
+EOF
+
+# 2. Tạo SafeCleanSeeder (Xóa dữ liệu chuẩn, không cần quyền cao)
+echo ">>> [2/3] Tạo SafeCleanSeeder..."
+mkdir -p $BACKEND_ROOT/Modules/IAM/database/seeders
+
+cat << 'EOF' > $BACKEND_ROOT/Modules/IAM/database/seeders/SafeCleanSeeder.php
+<?php
+
+namespace Modules\IAM\Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+
+class SafeCleanSeeder extends Seeder
+{
+    public function run(): void
+    {
+        // Xóa bảng theo thứ tự con -> cha để tránh lỗi khóa ngoại
+        // Không dùng TRUNCATE CASCADE vì cần quyền owner/superuser trên một số setup
+        
+        echo "1. Cleaning Wards...\n";
+        Schema::dropIfExists('wards');
+        
+        echo "2. Cleaning Districts...\n";
+        Schema::dropIfExists('districts');
+        
+        echo "3. Cleaning Provinces...\n";
+        Schema::dropIfExists('provinces');
+        
+        // Xóa log migration để chạy lại
+        DB::table('migrations')->where('migration', 'like', '%create_vietnam_locations_table%')->delete();
+        
+        echo "DB Cleaned Successfully!\n";
+    }
+}
+EOF
+
+# 3. Chạy lại toàn bộ quy trình
+echo ">>> [3/3] Reset Database & Import Data..."
+cd $BACKEND_ROOT
+composer dump-autoload
+
+# Xóa bảng cũ
+php artisan db:seed --class="Modules\IAM\Database\Seeders\SafeCleanSeeder" --force
+
+# Tạo bảng mới (Migration sẽ tự chạy lại vì log đã xóa)
+php artisan migrate --force
+
+# Nạp dữ liệu (VietnamLocationsSeeder đã tạo ở bước trước)
+php artisan db:seed --class="Modules\IAM\Database\Seeders\VietnamLocationsSeeder" --force
+
+# Xóa cache
+php artisan cache:clear
+php artisan route:clear
+
+echo "========================================================"
+echo "   ĐÃ HOÀN TẤT! DỮ LIỆU ĐÃ SẴN SÀNG."
+echo "   HÃY F5 LẠI TRANG CHECKOUT."
+echo "========================================================"
