@@ -1,76 +1,68 @@
-"use client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, ShoppingBag, Package, Users, Settings, 
-  LogOut, Image as ImageIcon, Ticket, BarChart3 
-} from "lucide-react";
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  Package,
+  Users,
+  Settings,
+  LogOut,
+  Image as ImageIcon,
+  Ticket,
+  Tag,
+  Zap, // Icon Flash Sale
+} from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   const menuItems = [
-    { name: "Tổng quan", href: "/", icon: <LayoutDashboard size={20} /> },
-    { name: "Đơn hàng", href: "/orders", icon: <ShoppingBag size={20} /> },
-    { name: "Sản phẩm", href: "/products", icon: <Package size={20} /> },
-    { name: "Khách hàng", href: "/users", icon: <Users size={20} /> },
-    
-    // Group Marketing
-    { section: "Kênh Marketing" },
-    { name: "Mã giảm giá", href: "/marketing/coupons", icon: <Ticket size={20} /> },
-    
-    { section: "Hệ thống" },
-    { name: "Cấu hình", href: "/settings", icon: <Settings size={20} /> },
+    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Đơn hàng', href: '/orders', icon: ShoppingBag },
+    { name: 'Sản phẩm', href: '/products', icon: Package },
+    { name: 'Khách hàng', href: '/users', icon: Users },
+    { name: 'Flash Sale', href: '/marketing/flash-sales', icon: Zap }, // Mới
+    { name: 'Chương trình KM', href: '/marketing/promotions', icon: Tag },
+    { name: 'Mã giảm giá', href: '/marketing/coupons', icon: Ticket },
+    { name: 'CMS & Media', href: '/cms', icon: ImageIcon },
+    { name: 'Cài đặt', href: '/settings', icon: Settings },
   ];
 
   return (
     <div className="w-64 bg-white h-screen border-r border-gray-200 flex flex-col fixed left-0 top-0 z-50">
-      <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">L</div>
-        <span className="font-bold text-xl text-gray-800">Lica Admin</span>
+      <div className="h-16 flex items-center justify-center border-b border-gray-200 bg-white">
+        <h1 className="text-xl font-bold text-blue-600">Lica Admin</h1>
       </div>
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {menuItems.map((item, index) => {
-          if (item.section) {
-            return (
-                <div key={index} className="mt-6 mb-2 px-3 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    {item.section}
-                </div>
-            );
-          }
-
-          const isActive = item.href === "/" 
-            ? pathname === "/" 
-            : pathname.startsWith(item.href || "");
-
+        {menuItems.map((item) => {
+          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          const Icon = item.icon;
+          const isFlashSale = item.href.includes('flash-sales');
+          
           return (
             <Link
-              key={index}
-              href={item.href || "#"}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 font-medium ${
-                isActive
-                  ? "bg-blue-50 text-blue-700 shadow-sm"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors font-medium text-sm ${
+                isActive 
+                  ? (isFlashSale ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600')
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
-              <div className={`${isActive ? "text-blue-600" : "text-gray-400"}`}>{item.icon}</div>
-              {item.name}
+              <Icon className={`w-5 h-5 ${isFlashSale && isActive ? 'fill-orange-600' : ''}`} />
+              <span>{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-100">
-        <button 
-            onClick={() => {
-                document.cookie = "admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-                window.location.href = "/login";
-            }}
-            className="flex items-center gap-3 w-full px-3 py-2.5 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition"
-        >
-          <LogOut size={20} />
-          <span className="font-medium">Đăng xuất</span>
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <button className="flex items-center gap-3 px-3 py-2 text-red-600 hover:bg-red-50 rounded-md w-full transition-colors text-sm font-medium">
+          <LogOut className="w-5 h-5" />
+          <span>Đăng xuất</span>
         </button>
       </div>
     </div>

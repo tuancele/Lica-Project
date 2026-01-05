@@ -119,8 +119,15 @@ export default function CreateCouponPage() {
             </button>
         </div>
       </form>
-
-      {showProductModal && <ProductSelector selectedIds={form.product_ids} onChange={(ids) => setForm({...form, product_ids: ids})} onClose={() => setShowProductModal(false)} />}
+      
+      {/* Fix: Map Product[] -> number[] */}
+      {showProductModal && (
+        <ProductSelector 
+            selectedIds={form.product_ids} 
+            onChange={(products) => setForm({...form, product_ids: products.map((p: any) => p.id)})} 
+            onClose={() => setShowProductModal(false)} 
+        />
+      )}
     </div>
   );
 }

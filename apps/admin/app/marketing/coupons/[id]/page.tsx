@@ -109,7 +109,15 @@ export default function EditCouponPage({ params }: { params: Promise<{ id: strin
             <button type="submit" disabled={saving} className="px-8 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 flex items-center gap-2"><Save size={18}/> {saving ? "Đang lưu..." : "Cập nhật"}</button>
         </div>
       </form>
-      {showProductModal && <ProductSelector selectedIds={form.product_ids} onChange={(ids) => setForm({...form, product_ids: ids})} onClose={() => setShowProductModal(false)} />}
+      
+      {/* Fix: Chuyển đổi products[] về ids[] */}
+      {showProductModal && (
+        <ProductSelector 
+            selectedIds={form.product_ids} 
+            onChange={(products) => setForm({...form, product_ids: products.map((p: any) => p.id)})} 
+            onClose={() => setShowProductModal(false)} 
+        />
+      )}
     </div>
   );
 }
