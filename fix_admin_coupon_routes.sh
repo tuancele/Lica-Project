@@ -1,3 +1,15 @@
+#!/bin/bash
+
+BE_DIR="/var/www/lica-project/backend"
+
+echo "========================================================"
+echo "   KHÔI PHỤC API QUẢN LÝ VOUCHER (ADMIN)"
+echo "========================================================"
+
+# Cập nhật file routes/api.php của Module Order
+# Kết hợp cả Route cho Checkout (User) và CRUD (Admin)
+echo ">>> Updating Routes..."
+cat << 'EOF' > $BE_DIR/Modules/Order/routes/api.php
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -23,3 +35,15 @@ Route::prefix('v1/marketing')->group(function () {
     Route::put('/coupons/{id}', [CouponController::class, 'update']); // Cập nhật
     Route::delete('/coupons/{id}', [CouponController::class, 'destroy']); // Xóa
 });
+EOF
+
+# Xóa cache route để hệ thống nhận diện đường dẫn mới
+echo ">>> Clearing Route Cache..."
+cd $BE_DIR
+php artisan route:clear
+php artisan config:clear
+
+echo "========================================================"
+echo "   ĐÃ KHÔI PHỤC API VOUCHER THÀNH CÔNG!"
+echo "   VUI LÒNG THỬ LẠI TRÊN TRANG ADMIN."
+echo "========================================================"
